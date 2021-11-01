@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 /*
   Function Declarations for builtin shell commands:
@@ -23,6 +24,7 @@
 int lsh_cd(char **args);
 int lsh_help(char **args);
 int lsh_exit(char **args);
+int lsh_export(char **args);
 
 /*
   List of builtin commands, followed by their corresponding functions.
@@ -30,12 +32,14 @@ int lsh_exit(char **args);
 char *builtin_str[] = {
     "cd",
     "help",
-    "exit"};
+    "exit",
+    "export"};
 
 int (*builtin_func[])(char **) = {
     &lsh_cd,
     &lsh_help,
-    &lsh_exit};
+    &lsh_exit,
+    &lsh_export};
 
 int lsh_num_builtins()
 {
@@ -43,8 +47,149 @@ int lsh_num_builtins()
 }
 
 /*
+Auxiliary functions
+*/
+
+bool isNumber(char c)
+{
+  int c_ascii = (int)c;
+  return c_ascii > 47 && c_ascii < 58;
+}
+
+bool isLetter(char c)
+{
+  int c_ascii = (int)c;
+  return (c_ascii > 64 && c_ascii < 91) || (c_ascii > 96 && c_ascii < 123);
+}
+
+/*
   Builtin function implementations.
 */
+
+#define MAX_NUM_OF_VARIABLES 3
+#define MAX_LENGTH_OF_VARIABLE_NAME 5
+#define MAX_LENGTH_OF_VARIABLE_VALUE 4
+int num_of_variables = 0;
+char variables_names[MAX_NUM_OF_VARIABLES][MAX_LENGTH_OF_VARIABLE_NAME + 1];
+char variables_values[MAX_NUM_OF_VARIABLES][MAX_LENGTH_OF_VARIABLE_VALUE + 1];
+
+int lsh_export(char **args)
+{
+  if (args[1] == NULL)
+  {
+    //Muestra todas las variables guardadas
+    for (int i = 0; i < num_of_variables; i++)
+      printf("declare %s = \"%s\"\n", variables_names[i], variables_values[i]);
+    return 1;
+  }
+  if (!isLetter(args[1][0]))
+  {
+    fprintf(stderr, "lsh: export: first letter of variable name must be a letter\n");
+    return 1;
+  }
+  int ind_arg = 1;
+  int ind_tmp = 0;
+  int size_variable_name = 0;
+  char variable_name[MAX_LENGTH_OF_VARIABLE_NAME + 1];
+
+  for (int i = 0; i < MAX_LENGTH_OF_VARIABLE_NAME; i++)
+  {
+    if (args[ind_arg][i] == '=' || ind_tmp == strlen(args[1]))
+      break;
+    variable_name[i] = args[ind_arg][i];
+    ind_tmp++;
+  }
+  //i>0
+  size_variable_name = ind_tmp;
+  if (ind_tmp < strlen(args[ind_arg]))
+  {
+    //Debe seguir = o error
+    if (args[ind_arg][ind_tmp++] != '=')
+    {
+      fprintf(stderr, "lsh: export: variable name exceeds a limit of %d characters\n", MAX_LENGTH_OF_VARIABLE_NAME);
+      return 1;
+    }
+    //Si llega al final del arg, pasa al siguiente
+    if (ind_tmp == strlen(args[ind_arg]))
+    {
+      ind_arg++;
+      ind_tmp = 0;
+      if (args[ind_arg] == NULL)
+      {
+        fprintf(stderr, "lsh: export: expected more arguments\n");
+        return 1;
+      }
+    }
+  }
+  else //==
+  {
+    ind_arg++;
+    ind_tmp = 0;
+    if (args[ind_arg] == NULL)
+    {
+      fprintf(stderr, "lsh: export: expected more arguments\n");
+      return 1;
+    }
+    if (strlen(args[ind_arg]) == 1 && args[ind_arg][0] == '=')
+    {
+      ind_arg++;
+      if (args[ind_arg] == NULL)
+      {
+        fprintf(stderr, "lsh: export: expected more arguments\n");
+        return 1;
+      }
+    }
+    else if (args[ind_arg][0] == '=')
+    {
+      ind_tmp++;
+    }
+  }
+  variable_name[size_variable_name] = '\0';
+
+  //Todo lo que viene después, será parte del valor
+  char variable_value[MAX_LENGTH_OF_VARIABLE_VALUE + 1];
+  int ind_tmp_value = 0;
+  while (args[ind_arg] != NULL)
+  {
+    if (ind_arg > 1 && ind_tmp_value > 0)
+      variable_value[ind_tmp_value++] = ' ';
+    for (; ind_tmp < strlen(args[ind_arg]); ind_tmp++)
+    {
+      variable_value[ind_tmp_value++] = args[ind_arg][ind_tmp];
+    }
+    ind_arg++;
+    ind_tmp = 0;
+  }
+  variable_value[ind_tmp_value] = '\0';
+  if (ind_tmp_value > MAX_LENGTH_OF_VARIABLE_VALUE)
+  {
+    fprintf(stderr, "lsh: export: variable value exceeds a limit of %d characters\n", MAX_LENGTH_OF_VARIABLE_VALUE);
+    return 1;
+  }
+
+  //Si variable_name existe, reemplaza su valor, sino lo agrega
+  bool added = 0;
+  for (int i = 0; i < num_of_variables; i++)
+  {
+    if (strcmp(variables_names[i], variable_name) == 0)
+    {
+      strcpy(variables_values[i], variable_value);
+      added = 1;
+      break;
+    }
+  }
+  if (added == 0)
+  {
+    if (num_of_variables == MAX_NUM_OF_VARIABLES)
+      fprintf(stderr, "lsh: export: maximum number of variables reached\n");
+    else
+    {
+      strcpy(variables_names[num_of_variables], variable_name);
+      strcpy(variables_values[num_of_variables++], variable_value);
+    }
+  }
+  return 1;
+}
 
 /**
    @brief Bultin command: change directory.

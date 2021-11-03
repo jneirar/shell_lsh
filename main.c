@@ -46,42 +46,53 @@ int lsh_num_builtins()
   return sizeof(builtin_str) / sizeof(char *);
 }
 
-/*
+/************************************************************
 Auxiliary functions
+*************************************************************/
+/*
+* Retorna si el caracter c es un número de acuerdo a su código ascii
 */
-
 bool isNumber(char c)
 {
   int c_ascii = (int)c;
   return c_ascii > 47 && c_ascii < 58;
 }
-
+/*
+* Retorna si el caracter c es una letra mayúscula o minúscula de acuerdo a su código ascii
+*/
 bool isLetter(char c)
 {
   int c_ascii = (int)c;
   return (c_ascii > 64 && c_ascii < 91) || (c_ascii > 96 && c_ascii < 123);
 }
 
-/*
+/************************************************************
   Builtin function implementations.
-*/
+*************************************************************/
 
+// Máximo número de variables a guardar
 #define MAX_NUM_OF_VARIABLES 3
+// Máximo tamaño del nombre de la variable
 #define MAX_LENGTH_OF_VARIABLE_NAME 5
+// Máximo tamaño del valor de la variable
 #define MAX_LENGTH_OF_VARIABLE_VALUE 4
+// Número de variables creadas
 int num_of_variables = 0;
+// Listas de nombres y valores de variables
 char variables_names[MAX_NUM_OF_VARIABLES][MAX_LENGTH_OF_VARIABLE_NAME + 1];
 char variables_values[MAX_NUM_OF_VARIABLES][MAX_LENGTH_OF_VARIABLE_VALUE + 1];
 
 int lsh_export(char **args)
 {
+  //Si solo se recibe el comando export, muestra todas las variables almacenadas
   if (args[1] == NULL)
   {
-    //Muestra todas las variables guardadas
     for (int i = 0; i < num_of_variables; i++)
       printf("declare %s = \"%s\"\n", variables_names[i], variables_values[i]);
     return 1;
   }
+
+  //Si el primer caracter del nombre de la variable no es una letra, se descarta
   if (!isLetter(args[1][0]))
   {
     fprintf(stderr, "lsh: export: first letter of variable name must be a letter\n");
@@ -92,6 +103,7 @@ int lsh_export(char **args)
   int size_variable_name = 0;
   char variable_name[MAX_LENGTH_OF_VARIABLE_NAME + 1];
 
+  //Recorro el primer argumento hasta encontrar '=' o alcanzar el límite de tamaño del nombre de variable
   for (int i = 0; i < MAX_LENGTH_OF_VARIABLE_NAME; i++)
   {
     if (args[ind_arg][i] == '=' || ind_tmp == strlen(args[1]))
@@ -99,17 +111,18 @@ int lsh_export(char **args)
     variable_name[i] = args[ind_arg][i];
     ind_tmp++;
   }
+
   //i>0
   size_variable_name = ind_tmp;
   if (ind_tmp < strlen(args[ind_arg]))
   {
-    //Debe seguir = o error
+    //Si aun hay caracteres en el argumento, debe seguir '=', sino excede el tamaño
     if (args[ind_arg][ind_tmp++] != '=')
     {
       fprintf(stderr, "lsh: export: variable name exceeds a limit of %d characters\n", MAX_LENGTH_OF_VARIABLE_NAME);
       return 1;
     }
-    //Si llega al final del arg, pasa al siguiente
+    //Si llega al final del arg, pasa al siguiente arg
     if (ind_tmp == strlen(args[ind_arg]))
     {
       ind_arg++;
@@ -125,11 +138,13 @@ int lsh_export(char **args)
   {
     ind_arg++;
     ind_tmp = 0;
+    // Pasa al siguiente arg
     if (args[ind_arg] == NULL)
     {
       fprintf(stderr, "lsh: export: expected more arguments\n");
       return 1;
     }
+    // Si el sgte arg es '=', pasa al siguiente
     if (strlen(args[ind_arg]) == 1 && args[ind_arg][0] == '=')
     {
       ind_arg++;
@@ -151,6 +166,7 @@ int lsh_export(char **args)
   int ind_tmp_value = 0;
   while (args[ind_arg] != NULL)
   {
+    //Si se termina de leer el argumento, se agrega un espacio
     if (ind_arg > 1 && ind_tmp_value > 0)
       variable_value[ind_tmp_value++] = ' ';
     for (; ind_tmp < strlen(args[ind_arg]); ind_tmp++)
@@ -161,12 +177,12 @@ int lsh_export(char **args)
     ind_tmp = 0;
   }
   variable_value[ind_tmp_value] = '\0';
+  //Si la variable tieme más caracteres que el máxmio, da error
   if (ind_tmp_value > MAX_LENGTH_OF_VARIABLE_VALUE)
   {
     fprintf(stderr, "lsh: export: variable value exceeds a limit of %d characters\n", MAX_LENGTH_OF_VARIABLE_VALUE);
     return 1;
   }
-
   //Si variable_name existe, reemplaza su valor, sino lo agrega
   bool added = 0;
   for (int i = 0; i < num_of_variables; i++)

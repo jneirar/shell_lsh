@@ -71,11 +71,11 @@ bool isLetter(char c)
 *************************************************************/
 
 // Máximo número de variables a guardar
-#define MAX_NUM_OF_VARIABLES 3
+#define MAX_NUM_OF_VARIABLES 5
 // Máximo tamaño del nombre de la variable
-#define MAX_LENGTH_OF_VARIABLE_NAME 5
+#define MAX_LENGTH_OF_VARIABLE_NAME 10
 // Máximo tamaño del valor de la variable
-#define MAX_LENGTH_OF_VARIABLE_VALUE 4
+#define MAX_LENGTH_OF_VARIABLE_VALUE 15
 // Número de variables creadas
 int num_of_variables = 0;
 // Listas de nombres y valores de variables

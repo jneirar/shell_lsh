@@ -26,6 +26,7 @@ int lsh_help(char **args);
 int lsh_exit(char **args);
 int lsh_export(char **args);
 int lsh_echo(char **args);
+int lsh_unset(char **args);
 
 /*
   List of builtin commands, followed by their corresponding functions.
@@ -35,14 +36,16 @@ char *builtin_str[] = {
     "help",
     "exit",
     "export",
-    "echo"};
+    "echo",
+    "unset"};
 
 int (*builtin_func[])(char **) = {
     &lsh_cd,
     &lsh_help,
     &lsh_exit,
     &lsh_export,
-    &lsh_echo};
+    &lsh_echo,
+    &lsh_unset};
 
 int lsh_num_builtins()
 {
@@ -85,10 +88,70 @@ int num_of_variables = 0;
 char variables_names[MAX_NUM_OF_VARIABLES][MAX_LENGTH_OF_VARIABLE_NAME + 1];
 char variables_values[MAX_NUM_OF_VARIABLES][MAX_LENGTH_OF_VARIABLE_VALUE + 1];
 
+/**
+   @brief Bultin command: delete a variable.
+   @param args List of args.  args[0] is "unset".
+   @return Always returns 1, to continue executing.
+ */
+int lsh_unset(char **args)
+{
+  if (args[1] == NULL)
+    return 1;
+  if (strcmp(args[1], "*") == 0)
+  {
+    //Borra todas las variables
+  }
+  else
+  {
+    char variable_name[MAX_LENGTH_OF_VARIABLE_NAME + 1];
+    int ind_tmp_var = 0;
+    int ind_arg = 1;
+    while (args[ind_arg] != NULL)
+    {
+      //Si se termina de leer el argumento, se agrega un espacio
+      if (ind_arg > 1)
+        variable_name[ind_tmp_var++] = ' ';
+      for (int ind_tmp = 0; ind_tmp < strlen(args[ind_arg]); ind_tmp++)
+      {
+        variable_name[ind_tmp_var++] = args[ind_arg][ind_tmp];
+        if (ind_tmp_var > MAX_LENGTH_OF_VARIABLE_NAME)
+        {
+          fprintf(stderr, "lsh: export: variable name exceeds a limit of %d characters\n", MAX_LENGTH_OF_VARIABLE_NAME);
+          return 1;
+        }
+      }
+      ind_arg++;
+    }
+    variable_name[ind_tmp_var] = '\0';
+    bool deleted = 0;
+    for (int i = 0; i < num_of_variables - 1; i++)
+    {
+      if (deleted)
+      {
+        strcpy(variables_names[i], variables_names[i + 1]);
+        strcpy(variables_values[i], variables_values[i + 1]);
+      }
+      else
+      {
+        if (strcmp(variables_names[i], variable_name) == 0)
+        {
+          deleted = 1;
+          i--;
+        }
+      }
+    }
+    if (deleted || !deleted && strcmp(variables_names[num_of_variables - 1], variable_name) == 0)
+      num_of_variables--;
+    else
+      fprintf(stderr, "lsh: export: variable \"%s\" does not exist\n", variable_name);
+  }
+
+  return 1;
+}
 
 /**
-   @brief Bultin command: change directory.
-   @param args List of args.  args[0] is "cd".  args[1] is the directory.
+   @brief Bultin command: show variable if exists.
+   @param args List of args.  args[0] is "echo".
    @return Always returns 1, to continue executing.
  */
 int lsh_echo(char **args)
@@ -113,7 +176,8 @@ int lsh_echo(char **args)
             j++;
             k++;
           }
-          else break;
+          else
+            break;
         }
 
         if (k == strlen(args[ind_arg]))
@@ -234,7 +298,7 @@ int lsh_export(char **args)
     ind_tmp = 0;
   }
   variable_value[ind_tmp_value] = '\0';
-  //Si la variable tieme más caracteres que el máxmio, da error
+  //Si la variable tiene más caracteres que el máxmio, da error
   if (ind_tmp_value > MAX_LENGTH_OF_VARIABLE_VALUE)
   {
     fprintf(stderr, "lsh: export: variable value exceeds a limit of %d characters\n", MAX_LENGTH_OF_VARIABLE_VALUE);

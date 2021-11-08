@@ -25,6 +25,7 @@ int lsh_cd(char **args);
 int lsh_help(char **args);
 int lsh_exit(char **args);
 int lsh_export(char **args);
+int lsh_echo(char **args);
 
 /*
   List of builtin commands, followed by their corresponding functions.
@@ -33,13 +34,15 @@ char *builtin_str[] = {
     "cd",
     "help",
     "exit",
-    "export"};
+    "export",
+    "echo"};
 
 int (*builtin_func[])(char **) = {
     &lsh_cd,
     &lsh_help,
     &lsh_exit,
-    &lsh_export};
+    &lsh_export,
+    &lsh_echo};
 
 int lsh_num_builtins()
 {
@@ -82,6 +85,57 @@ int num_of_variables = 0;
 char variables_names[MAX_NUM_OF_VARIABLES][MAX_LENGTH_OF_VARIABLE_NAME + 1];
 char variables_values[MAX_NUM_OF_VARIABLES][MAX_LENGTH_OF_VARIABLE_VALUE + 1];
 
+
+/**
+   @brief Bultin command: change directory.
+   @param args List of args.  args[0] is "cd".  args[1] is the directory.
+   @return Always returns 1, to continue executing.
+ */
+int lsh_echo(char **args)
+{
+  if (args[1] == NULL)
+    return 1;
+
+  int ind_arg = 1;
+  while (args[ind_arg] != NULL)
+  {
+    if (args[ind_arg][0] == '$')
+    {
+      for (int i = 0; i < num_of_variables; i++)
+      {
+        int j = 0, k = 1;
+        while (variables_names[i][j] != '\0' && k < strlen(args[ind_arg]))
+        {
+          if (variables_names[i][j] == args[ind_arg][k])
+          {
+            j++;
+            k++;
+          }
+          else break;
+        }
+
+        if (k == strlen(args[ind_arg]))
+        {
+          fprintf(stderr, "%s", variables_values[i]);
+          break;
+        }
+      }
+      fprintf(stderr, " ");
+      ind_arg++;
+    }
+    else
+      fprintf(stderr, "%s ", args[ind_arg++]);
+  }
+
+  fprintf(stderr, "\n");
+  return 1;
+}
+
+/**
+   @brief Bultin command: export variable.
+   @param args List of args.  args[0] is "export".
+   @return Always returns 1, to continue executing.
+ */
 int lsh_export(char **args)
 {
   //Si solo se recibe el comando export, muestra todas las variables almacenadas

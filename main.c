@@ -99,7 +99,7 @@ int lsh_unset(char **args)
     return 1;
   if (strcmp(args[1], "*") == 0)
   {
-    //Borra todas las variables
+    num_of_variables = 0;
   }
   else
   {

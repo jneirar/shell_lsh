@@ -97,8 +97,10 @@ int lsh_echo(char **args)
     return 1;
 
   int ind_arg = 1;
+  // Check all arguments
   while (args[ind_arg] != NULL)
   {
+    // If variable search it
     if (args[ind_arg][0] == '$')
     {
       for (int i = 0; i < num_of_variables; i++)
@@ -123,6 +125,7 @@ int lsh_echo(char **args)
       fprintf(stderr, " ");
       ind_arg++;
     }
+    // else print the argument
     else
       fprintf(stderr, "%s ", args[ind_arg++]);
   }
